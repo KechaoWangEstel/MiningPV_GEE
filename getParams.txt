@@ -1,0 +1,136 @@
+var GTI = ee.Image("projects/ee-ejxin/assets/PV/GTI"),
+    DIF = ee.Image("projects/ee-ejxin/assets/PV/DIF"),
+    SRTM = ee.Image("CGIAR/SRTM90_V4"),
+    river = ee.FeatureCollection("projects/ee-kechaowang/assets/ne_10m_rivers_lake_centerlines"),
+    GDP2019 = ee.Image("projects/ee-kechaowang/assets/RealGDP2019"),
+    PowerPlants = ee.FeatureCollection("projects/ee-ejxin/assets/globalPowerPlant"),
+    Landscan2022 = ee.Image("projects/ee-kechaowang/assets/landscan-global-2022"),
+    gaia = ee.ImageCollection("projects/tthe2011/assets/GAIA_1985_2022"),
+    GHI = ee.Image("projects/ee-kechaowang/assets/PV/GHI"),
+    TEMP = ee.Image("projects/ee-kechaowang/assets/PV/World_TEMP_GISdata_LTAy_GlobalSolarAtlas"),
+    PVOUT = ee.Image("projects/ee-kechaowang/assets/PV/World_PVOUT_GISdata_LTAy_AvgDailyTotals_GlobalSolarAtlas"),
+    Carbon = ee.Image("projects/ee-kechaowang/assets/PV/CarbonEmissionODIAC_1km_2101"),
+    UrbanBoundary = ee.Image("users/kechaowang0/UrbanBoundarygt50"),
+    pointWithLabel = ee.FeatureCollection("projects/ee-kechaowang/assets/PV/pointWithLabel"),
+    DNI = ee.Image("projects/ee-kechaowang/assets/PV/DNI"),
+    EC = ee.Image("users/kechaowang0/ElectricityConsumption2019"),
+    pointWithDis = ee.FeatureCollection("projects/ee-ejxin/assets/pointWithDis"),
+    image = ee.Image("Tsinghua/FROM-GLC/GAIA/v10");
+var band = PowerPlants.select(0); // 选择第一个波段
+var resolution = band.projection().nominalScale();
+print('Resolution:', resolution.getInfo());
+
+var gaia = ee.ImageCollection("projects/tingtinghe2011/assets/GAIA_1985_2022");
+// // 定义颜色映射
+// var palette = ['0000ff', '00ffff', 'ffff00', 'ff0000', 'ffffff'];
+// Map.addLayer(Carbon,{min:1,max:100, palette: palette},"Carbon")
+var DEM = SRTM.select('elevation');
+//计算坡度
+var slope = ee.Terrain.slope(SRTM);
+//计算坡向
+var aspect = ee.Terrain.aspect(SRTM);
+// 将坡向值拉伸到-1————1之间 
+//-1代表正西、1代表正东方向 
+var aspectImage = aspect.divide(180).multiply(Math.PI).sin();
+// Map.addLayer(slope, {min: 0, max:30}, 'slope');//坡度
+// Map.addLayer(asImage, {min:-1,max:1}, 'asImage')//坡向
+// print(slope,'slope')
+function addParam(point){
+  var buffer = point.buffer(5000); // 5公里半径的缓冲区，以米为单位
+  // 使用reduceRegion方法采样图像
+  var DEMValue = DEM.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var slopValue = slope.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var aspectImageValue = aspectImage.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var GTIValue = GTI.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var DIFValue = DIF.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var GHIValue = GHI.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var TEMPValue = TEMP.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var PVOUTValue = PVOUT.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var DNIValue = DNI.reduceRegion({
+  reducer: ee.Reducer.first(),
+  geometry: point.geometry(),
+  scale: 30
+});
+  var ECsumValue = EC.reduceRegion({
+    reducer: ee.Reducer.first(),
+    geometry: buffer.geometry(),
+    scale: 30
+  });
+  var CO2sumValue = Carbon.reduceRegion({
+    reducer: ee.Reducer.first(),
+    geometry: buffer.geometry(),
+    scale: 30
+  });
+  var GDPsumValue = GDP2019.reduceRegion({
+    reducer: ee.Reducer.first(),
+    geometry: buffer.geometry(),
+    scale: 30
+  });
+  var POPsumValue = Landscan2022.reduceRegion({
+    reducer: ee.Reducer.first(),
+    geometry: buffer.geometry(),
+    scale: 30
+  });
+
+  // 使用distance求距离
+  var WaterDis = point.geometry().distance(river);
+  var PlantsDis = point.geometry().distance(PowerPlants);
+  var RoadDis = point.get('dis');
+
+  return point.copyProperties(point, ["area",'label'])
+  .set({DEM:DEMValue.get('elevation')})
+  .set({slop:slopValue.get('slope')})
+  .set({aspect:aspectImageValue.get('aspect')})
+  .set({GTI:GTIValue.get('b1')})
+  .set({DIF:DIFValue.get('b1')})
+  .set({GHI:GHIValue.get('b1')})
+  .set({TEM:TEMPValue.get('b1')})
+  .set({PVOUT:PVOUTValue.get('b1')})
+  .set({DNI:DNIValue.get('b1')})
+  .set({ECsum:ECsumValue.get('b1')})
+  .set({CO2sum:CO2sumValue.get('b1')})
+  .set({GDPsum:GDPsumValue.get('b1')})
+  .set({POPsum:POPsumValue.get('b1')})
+  .set({WaterDis:WaterDis})
+  .set({PlantsDis:PlantsDis})
+  .set({RoadDis:RoadDis});
+}
+var pointWithAllParam = pointWithDis.map(addParam);
+Export.table.toDrive({
+  collection:pointWithAllParam, 
+  folder:'MiningPV', 
+  description: 'pointWithAllParam',
+  fileFormat: 'CSV'
+});

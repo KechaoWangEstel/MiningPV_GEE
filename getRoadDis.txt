@@ -1,0 +1,111 @@
+var NorthAmericaHighWay = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_NorthAmericaHighway"),
+    NorthAmericaPrimary = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_NorthAmericaPrimary"),
+    CentralSouthAmericaHighway = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_CentralSouthAmericaHighway"),
+    MiddleEastCentralAsiaHighwayAndPrimary = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_MiddleEastCentralAsiaHighwayAndPrimary"),
+    CentralSouthAmericaPrimary1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_CentralSouthAmericaPrimary1"),
+    CentralSouthAmericaPrimary2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_CentralSouthAmericaPrimary2"),
+    OceaniaHighwayAndPrimary = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_OceaniaHighwayAndPrimary"),
+    SouthEastAsiaPrimary1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary1"),
+    SouthEastAsiaPrimary2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary2"),
+    SouthEastAsiaHighway1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaHighway1"),
+    SouthEastAsiaHighway2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaHighway2"),
+    EuropePrimary1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary1"),
+    EuropePrimary2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary2"),
+    EuropeHighway1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropeHighway1"),
+    EuropeHighway2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropeHighway2"),
+    EuropeHighway1_1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropeHighway1_1"),
+    EuropeHighway1_2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropeHighway1_2"),
+    EuropePrimary1_1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary1_1"),
+    EuropePrimary1_2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary1_2"),
+    EuropePrimary2_1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary2_1"),
+    EuropePrimary2_2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_EuropePrimary2_2"),
+    SouthEastAsiaPrimary1_1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary1_1"),
+    SouthEastAsiaPrimary1_2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary1_2"),
+    SouthEastAsiaPrimary2_1 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary2_1"),
+    SouthEastAsiaPrimary2_2 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary2_2"),
+    SouthEastAsiaPrimary2_3 = ee.FeatureCollection("users/kechaowang0/GRIP4/GRIP4_SouthEastAsiaPrimary2_3"),
+    pointWithLabel = ee.FeatureCollection("projects/ee-kechaowang/assets/PV/pointWithLabel"),
+    continents = ee.FeatureCollection("USDOS/LSIB_SIMPLE/2017"),
+    AfricaHighwayAndPrimary = ee.FeatureCollection("projects/ee-kechaowang/assets/GRIP4/GRIP4_AfricaHighwayAndPrimary");
+function nearDisAfrica(centerPoint){
+  var nearDis = 1e13;
+  //================================Africa=====================================//
+  var roadDisAfricaHighwayAndPrimary = centerPoint.distance(AfricaHighwayAndPrimary);
+  nearDis = ee.Number(nearDis).min(roadDisAfricaHighwayAndPrimary);
+  return nearDis;
+}
+function nearDisOceania(centerPoint){
+  var nearDis = 1e13;
+  //=====================================Oceania===============================================//
+  var roadDisOceaniaHighwayAndPrimary = centerPoint.distance(OceaniaHighwayAndPrimary);
+  nearDis = ee.Number(nearDis).min(roadDisOceaniaHighwayAndPrimary);
+  return nearDis;
+}
+function nearDisAsia(centerPoint){
+  var nearDis = 1e13;
+  //================================MiddleEastCentralAsia=====================================//
+  var roadDisMiddleEastCentralAsiaHighwayAndPrimary = centerPoint.distance(MiddleEastCentralAsiaHighwayAndPrimary);
+  nearDis = ee.Number(nearDis).min(roadDisMiddleEastCentralAsiaHighwayAndPrimary);
+  //==================================SouthEastAsia==========================================//
+  var roadDisSouthEastAsiaPrimary1_1 = centerPoint.distance(SouthEastAsiaPrimary1_1);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaPrimary1_1);
+  var roadDisSouthEastAsiaPrimary1_2 = centerPoint.distance(SouthEastAsiaPrimary1_2);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaPrimary1_2);
+  var roadDisSouthEastAsiaPrimary2_1 = centerPoint.distance(SouthEastAsiaPrimary2_1);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaPrimary2_1);
+  var roadDisSouthEastAsiaPrimary2_2 = centerPoint.distance(SouthEastAsiaPrimary2_2);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaPrimary2_2);
+  var roadDisSouthEastAsiaPrimary2_3 = centerPoint.distance(SouthEastAsiaPrimary2_3);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaPrimary2_3);
+  var roadDisSouthEastAsiaHighway1 = centerPoint.distance(SouthEastAsiaHighway1);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaHighway1);
+  var roadDisSouthEastAsiaHighway2 = centerPoint.distance(SouthEastAsiaHighway2);
+  nearDis = ee.Number(nearDis).min(roadDisSouthEastAsiaHighway2);
+  return nearDis;
+}
+function nearDisEurope(centerPoint){
+  var nearDis = 1e13;
+  //=============================Europe==================================//
+  var roadDisEuropePrimary1_1 = centerPoint.distance(EuropePrimary1_1);
+  nearDis = ee.Number(nearDis).min(roadDisEuropePrimary1_1);
+  var roadDisEuropePrimary1_2 = centerPoint.distance(EuropePrimary1_2);
+  nearDis = ee.Number(nearDis).min(roadDisEuropePrimary1_2);
+  var roadDisEuropePrimary2_1 = centerPoint.distance(EuropePrimary2_1);
+  nearDis = ee.Number(nearDis).min(roadDisEuropePrimary2_1);
+  var roadDisEuropePrimary2_2 = centerPoint.distance(EuropePrimary2_2);
+  nearDis = ee.Number(nearDis).min(roadDisEuropePrimary2_2);
+  var roadDisEuropeHighway1_1 = centerPoint.distance(EuropeHighway1_1);
+  nearDis = ee.Number(nearDis).min(roadDisEuropeHighway1_1);
+  var roadDisEuropeHighway1_2 = centerPoint.distance(EuropeHighway1_2);
+  nearDis = ee.Number(nearDis).min(roadDisEuropeHighway1_2);
+  var roadDisEuropeHighway2 = centerPoint.distance(EuropeHighway2);
+  nearDis = ee.Number(nearDis).min(roadDisEuropeHighway2);
+  return nearDis;
+}
+function nearDisAmerica(centerPoint){
+  var nearDis = 1e13;
+  //================================NorthAmerica=====================================//
+  var roadDisNorthAmericaHighWay = centerPoint.distance(NorthAmericaHighWay);
+  nearDis = ee.Number(nearDis).min(roadDisNorthAmericaHighWay);
+  var roadDisNorthAmericaPrimary = centerPoint.distance(NorthAmericaPrimary);
+  nearDis = ee.Number(nearDis).min(roadDisNorthAmericaPrimary);
+  //================================CentralSouthAmerica=====================================//
+  var roadDisCentralSouthAmericaHighway = centerPoint.distance(CentralSouthAmericaHighway);
+  nearDis = ee.Number(nearDis).min(roadDisCentralSouthAmericaHighway);
+  var roadDisCentralSouthAmericaPrimary1 = centerPoint.distance(CentralSouthAmericaPrimary1);
+  nearDis = ee.Number(nearDis).min(roadDisCentralSouthAmericaPrimary1);
+  var roadDisCentralSouthAmericaPrimary2 = centerPoint.distance(CentralSouthAmericaPrimary2);
+  nearDis = ee.Number(nearDis).min(roadDisCentralSouthAmericaPrimary2);
+  return nearDis;
+}
+
+// var Point = /* color: #0b4a8b */ee.Geometry.Point([-122.4, 37.7]);
+// var nearDis1 = findNearDis1(Point);
+// var nearDis2 = findNearDis2(Point);
+// var nearDis3 = findNearDis3(Point);
+// print(nearDis1,nearDis2,nearDis3);
+exports.nearDisAfrica = nearDisAfrica;
+exports.nearDisOceania = nearDisOceania;
+exports.nearDisAsia = nearDisAsia;
+exports.nearDisEurope = nearDisEurope;
+exports.nearDisAmerica = nearDisAmerica;

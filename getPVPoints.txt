@@ -1,0 +1,90 @@
+var vis_params = {"min":-40,"max":35,"palette":["blue","purple","cyan","green","yellow","red"]},
+    vis_params_2 = {"min":0,"max":100,"palette":["blue","purple","cyan","green","yellow","red"]},
+    PVAreas = ee.FeatureCollection("projects/ee-kechaowang/assets/PV/2018PV_Kruitwagen");
+
+// =====================对光电厂进行预处理，留下面积大于10000m^2的部分======================//
+var PVArea_area = PVAreas.map(function(feature){
+    var area = feature.geometry().area();
+    return feature.set({area: area})
+});
+
+// 使用reduceColumns函数求和
+var sum = PVArea_area.reduceColumns({
+  reducer: ee.Reducer.sum(),
+  selectors: ['area']
+}).get('sum');
+
+// 打印求和结果
+print('全球光伏面积总和:', sum);
+// 筛选大于10000的
+var PV_gt1w = PVAreas.filter(ee.Filter.gt('area', 10000))
+
+// 使用reduceColumns函数求和
+var sum2 = PV_gt1w.reduceColumns({
+  reducer: ee.Reducer.sum(),
+  selectors: ['area']
+}).get('sum');
+
+// 打印求和结果
+print('全球>10000光伏面积总和:', sum2);
+// Map.addLayer(PV_gt1w,{color:'black'},'PV_gt1w');
+//=========================对每个光电厂找到中心点，赋值标签=============================//
+function findCenter(feature) {
+  // 定义一个函数来计算每个区域的面积并找到中心点，并将其中心点的label设置为1
+  var center = feature.geometry().centroid(); // 使用centroid()找到质心
+  var centerFeature = ee.Feature(center); // 将质心转换为Feature
+  centerFeature = centerFeature.copyProperties(feature, ["area"]);
+  return centerFeature.set({label: 1});
+}
+  
+var PV_point = PV_gt1w.map(findCenter);
+Map.addLayer(PV_point,{color:'black'},'PV_point');
+//============对每个光电厂找到中心点，生成环状缓冲区，并在缓冲区中随机选点=============//
+function generateBufferAndRandomSampling(feature){
+  // 计算2km到20km的环形缓冲区
+  var center = feature.geometry();
+  var innerBuffer = center.buffer(2000);
+  var outerBuffer = center.buffer(20000);
+  var annulus = outerBuffer.difference(innerBuffer);
+  Map.addLayer(annulus, {}, 'annulus');
+  var Randpoint= ee.FeatureCollection.randomPoints(annulus, 1);
+  return Randpoint.first().set({area: 0}).set({label: 0});
+}
+
+var RandomPoints = PV_point.map(generateBufferAndRandomSampling);
+// print(RandomPoints.size());
+Map.addLayer(RandomPoints, {color:'red'}, 'RandomPoints');
+//=========================在随机点中删除落到水体上的点=============================//
+var WorldCover10m2020Img = ee.ImageCollection("ESA/WorldCover/v100").first();
+function findPointOnWater(point){
+  var value = WorldCover10m2020Img.sample(point.geometry(), 1).first().get('Map');
+  return point.copyProperties(point, ["area"]).set({Cover: value})
+}
+var pointNotOnWater = RandomPoints.map(findPointOnWater);
+var RandomPointsWithoutWater = pointNotOnWater.filter(ee.Filter.neq('Cover', 80));
+// print('RandomPointsWithoutWater.size()',RandomPointsWithoutWater.size());
+//=========================在随机点中删除落到其他光电厂范围内的点=============================//
+// 创建一个空的 ee.Image，初始值可以设置为0
+var emptyImage = ee.Image(0);
+// 将 FeatureCollection 绘制到 ee.Image 上，多边形内部像素值为1
+var PVAreaImg = emptyImage.paint({
+  featureCollection: PVAreas,
+  color: 1
+});
+Map.addLayer(PVAreaImg, {min: 0, max: 1, palette: ['000000', 'ffffff']}, 'Binary Image')
+function findPointOnPVArea(point){
+  var value = PVAreaImg.sample(point.geometry(), 1).first().get('constant');
+  return point.copyProperties(point, ["area"]).set({onpv: value})
+}
+var pointNotOnPVArea = RandomPointsWithoutWater.map(findPointOnPVArea);
+var finalRandomPoints = pointNotOnPVArea.filter(ee.Filter.neq('onpv', 1));
+// print('finalRandomPoints.size()',finalRandomPoints.size());
+//=========================将label是1的点和0的点合并为一个集合=============================//
+var pointWithLabel =  PV_point.merge(finalRandomPoints);
+// // 导出文件
+Export.table.toDrive({
+  collection:pointWithLabel, 
+  folder:'MiningPV', 
+  description: 'pointWithLabel',
+  fileFormat: 'SHP'
+});

@@ -1,0 +1,87 @@
+var Bd_M = ee.FeatureCollection("projects/ee-xujianpeng0305/assets/Mining/Boundaries_Maus"),
+    Bd_X = ee.FeatureCollection("projects/ee-xujianpeng0305/assets/Mining/Boundaries_xhp_2022"),
+    DLR_settlement2015 = ee.Image("DLR/WSF/WSF2015/v1"),
+    MineBoundary = ee.FeatureCollection("users/kechaowang0/MineBoundary"),
+    WorldCover10m2021 = ee.ImageCollection("ESA/WorldCover/v200");
+
+Map.addLayer(Bd_M,{},"Bd_M");
+print(Bd_M.size());
+print(Bd_X.size());
+print(MineMerged.size());
+var Bd_union = Bd_M.merge(Bd_X);
+
+var maxError = 10;
+
+// var Bd_union_buffer3km = Bd_union.
+
+
+
+print("Bd_M", Bd_M.limit(3));
+print("Bd_X", Bd_X.limit(3));
+
+
+
+var visualization_WorldCover = {
+  bands: ['Map'],
+};
+
+Map.addLayer(PV2018, visualization_WorldCover, 'PV2018');
+Map.addLayer(MineMerged, {palette: "red"}, 'MineMerged');
+
+var WorldCover2020 = WorldCover10m2020.first();
+Map.addLayer(WorldCover2020, visualization_WorldCover, 'WorldCover2020', false);
+
+var opacity = 0.75;
+var blackBackground = ee.Image(0);
+Map.addLayer(blackBackground, null, 'Black background', true, opacity);
+
+var visualization = {
+  min: 0,
+  max: 255,
+};
+Map.addLayer(DLR_settlement2015, visualization, 'Human settlement areas', false);
+
+
+Map.addLayer(ee.Image().paint(Bd_M, 0, 3), {palette: ['ff0000']}, "Boundary Maus");
+Map.addLayer(ee.Image().paint(Bd_X, 0, 2), {palette: ['0000ff']}, "Boundary Xie", false);
+// Map.centerObject(Test_Tongling, 15);
+
+//=================筛选出所有50和60的土地，进行掩膜=============================//
+// 提取 Map 波段
+var mapBand = WorldCover2020.select("Map");
+// 创建一个掩码，其中值为 50 和 60 的点为 1，其他点为 0
+var mask5060 = mapBand.eq(50).or(mapBand.eq(60)).unmask(0);
+// 将掩码应用于图像，将其他点变为 0
+// var WorldCover10m2020Img5060 = mapBand.updateMask(mask);
+// Map.addLayer(mask5060, {}, 'WorldCover10m2020Img5060');
+//=============================================================//
+Map.addLayer(ee.Image().paint(Bd_merged, 0, 1), {palette: ['00ff00']}, "Boundary merged", false);
+// print("Bd_merged", Bd_merged.limit(3));
+function calculateArea2Points(feature){
+  var center = feature.geometry().centroid(); // 使用centroid()找到质心
+  var centerFeature = ee.Feature(center); // 将质心转换为Feature
+  var sum = mask5060.reduceRegion({
+            reducer: ee.Reducer.sum(),
+            geometry: feature.geometry(), // 如果有特定区域
+            scale: mask5060.projection().nominalScale(), // 根据图像的分辨率设置scale
+            bestEffort: true // 允许GEE自动调整scale以提高计算效率
+            });
+  return centerFeature.set({'area':sum.get('Map')});
+}
+
+var MiningPoints = Bd_merged.map(calculateArea2Points);
+// print("MiningPoints", MiningPoints.limit(3));
+Export.table.toDrive({
+  collection:MiningPoints, 
+  folder:'MiningPV', 
+  description: 'MiningPoints',
+  fileFormat: 'SHP'
+});
+var Mining_gt1w = MiningPoints.filter(ee.Filter.gt('area', 10000));
+// Map.addLayer(Mining_gt1w,{color:'red'},'11');
+Export.table.toDrive({
+  collection:Mining_gt1w, 
+  folder:'MiningPV', 
+  description: 'Mining_gt1w',
+  fileFormat: 'SHP'
+});

@@ -1,0 +1,129 @@
+var MineBoundary = ee.FeatureCollection("users/kechaowang0/MineBoundary"),
+    LS8 = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2");
+var roi = ee.FeatureCollection(MineBoundary);
+Map.addLayer(roi, {palette: ['ff0000']}, "Boundary merged");
+
+// 定义函数计算特定一年的年均NDVI
+function calculateAnnualMeanNDVI(year) {
+  var startDate = ee.Date.fromYMD(year, 1, 1);
+  var endDate = startDate.advance(1, 'year');
+  
+  return ee.ImageCollection("MODIS/006/MOD13Q1")
+    .filterDate(startDate, endDate)
+    .select("NDVI")
+    .mean()
+    .multiply(0.0001); // 将NDVI值从0-10000转换为0-1
+}
+
+// 计算2013年-2023年的年均NDVI
+var ndvi2013 = calculateAnnualMeanNDVI(2013);
+var ndvi2014 = calculateAnnualMeanNDVI(2014);
+var ndvi2015 = calculateAnnualMeanNDVI(2015);
+var ndvi2016 = calculateAnnualMeanNDVI(2016);
+var ndvi2017 = calculateAnnualMeanNDVI(2017);
+var ndvi2018 = calculateAnnualMeanNDVI(2018);
+var ndvi2019 = calculateAnnualMeanNDVI(2019);
+var ndvi2020 = calculateAnnualMeanNDVI(2020);
+var ndvi2021 = calculateAnnualMeanNDVI(2021);
+var ndvi2022 = calculateAnnualMeanNDVI(2022);
+var ndvi2023 = calculateAnnualMeanNDVI(2023);
+
+// 聚合NDVI到每个多边形并设置属性
+var roiWithNDVI = roi.map(function(feature) {
+  var geom = feature.geometry();
+  var mean2013 = ndvi2013.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2014 = ndvi2014.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2015 = ndvi2015.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2016 = ndvi2016.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2017 = ndvi2017.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2018 = ndvi2018.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2019 = ndvi2019.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2020 = ndvi2020.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500
+  });
+  var mean2021 = ndvi2021.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2022 = ndvi2022.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  var mean2023 = ndvi2023.reduceRegion({
+    reducer: ee.Reducer.mean(),
+    geometry: geom,
+    scale: 500 // 根据MODIS数据的分辨率调整scale参数
+  });
+  // 将计算结果设置为属性
+  return feature.set({
+    'ndvi2013': mean2013.get('NDVI'),
+    'ndvi2014': mean2014.get('NDVI'),
+    'ndvi2015': mean2015.get('NDVI'),
+    'ndvi2016': mean2016.get('NDVI'),
+    'ndvi2017': mean2017.get('NDVI'),
+    'ndvi2018': mean2018.get('NDVI'),
+    'ndvi2019': mean2019.get('NDVI'),
+    'ndvi2020': mean2020.get('NDVI'),
+    'ndvi2021': mean2021.get('NDVI'),
+    'ndvi2022': mean2022.get('NDVI'),
+    'ndvi2023': mean2023.get('NDVI')
+  });
+});
+// 打印FeatureCollection的size
+print("FeatureCollection size:", roiWithNDVI.size());
+
+// print(roiWithNDVI.limit(20).getInfo());
+// 计算每个多边形的质心，并复制属性
+var centroidsWithProperties = roiWithNDVI.map(function(feature) {
+  var centroid = feature.centroid().copyProperties(feature);
+  return centroid;
+});
+
+// 将质心FeatureCollection转换为表格，准备导出
+var table = ee.FeatureCollection(centroidsWithProperties);
+
+// 导出表格到Google Drive
+Export.table.toDrive({
+  collection: table,
+  description: 'AllMinePoint_withNDVI13_23',
+  folder: 'MiningPV', // 指定保存的文件夹名
+  fileFormat: 'SHP' // 选择导出格式，可以是CSV或GeoJSON
+});
+Export.table.toDrive({
+  collection: table,
+  description: 'AllMinePoint_withNDVI13_23',
+  folder: 'MiningPV', // 指定保存的文件夹名
+  fileFormat: 'CSV' // 选择导出格式，可以是CSV或GeoJSON
+});
